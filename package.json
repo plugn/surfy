@@ -1,0 +1,28 @@
+{
+  "name": "surfy",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Surfy: clean web provider.",
+  "dependencies": {
+    "sails": "0.8.9",
+    "cheerio": "~0.16.0",
+    "request": "~2.36.0",
+    "iconv": "~2.1.4",
+    "charset": "0.0.2"
+  },
+  "scripts": {
+    "start": "node app.js",
+    "debug": "node debug app.js"
+  },
+  "main": "app.js",
+  "repository": "",
+  "author": {
+    "name": "Maxim Dolgov",
+    "email": "bananafishbone@gmail.com"
+  },
+  "license": "MIT",
+  "engines" : {
+    "node": "0.10.x"
+  }
+
+}
