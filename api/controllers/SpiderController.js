@@ -70,12 +70,6 @@ module.exports = {
         .replace(/<(script|noscript|style|iframe)[^>]*?>.*?<\/\1>/g,'')
         .replace(/(style|class|color|bgcolor)\s?=\s?["']?((?:.(?!["']?\s+(?:\S+)=|[>"']))+.)["']?/g, '')
         .replace(/\s+>/g,'>')
-        // .replace(/<img[^]*?src\s?=\s?["']?((?:https?:)?\/\/|)(\S+)["']?[^>]*?>/g, 
-        //   function(match, p1, url){
-        //     if (!url) return '';
-        //     var ret = (url && baseHost(currentHost) == baseHost(url))? match : ''
-        //     return ret;
-        //   })
         .replace(/(<img[^]*?src\s?=\s?["']?)((?:https?:)?\/\/|)(\S+)(["']?(?:[^>]*?|)>)/g, 
           function(match,head,protocol,location,tail){
             if (!location) return '';
