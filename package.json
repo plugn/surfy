@@ -8,7 +8,8 @@
     "cheerio": "~0.16.0",
     "request": "~2.36.0",
     "iconv": "~2.1.4",
-    "charset": "0.0.2"
+    "charset": "0.0.2",
+    "url": "~0.10.1"
   },
   "scripts": {
     "start": "node app.js",
@@ -21,8 +22,7 @@
     "email": "bananafishbone@gmail.com"
   },
   "license": "MIT",
-  "engines" : {
+  "engines": {
     "node": "0.10.x"
   }
-
 }

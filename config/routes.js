@@ -29,6 +29,10 @@ module.exports.routes = {
 	'/surfy/*' : {
 		controller: 'spider',
 		action: 'index'
+	},
+	'/parse/*' : {
+		controller: 'spider',
+		action: 'parse'
 	}
 
 	// If you want to set up a route only for a particular HTTP method/verb 

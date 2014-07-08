@@ -1,6 +1,7 @@
 var util = require('util'),
     request = require('request'),
     charset = require('charset'),
+    url = require('url'),
     Iconv = require('iconv').Iconv,
     cheerio = require('cheerio');
 
@@ -20,6 +21,8 @@ var log = {
     console.log.apply(console, args);
   }
 };
+
+
 
 var appURL = '/surfy/';
 
@@ -49,6 +52,8 @@ module.exports = {
     console.log(' === baseHost('+url+'): ', baseHost(url))
     var currentHost = getHost(url) || defaultUrl;
     var currentPath = getPath(url);
+
+    // console.log(' location: ',  location);
 
     console.log(' * req.url', req.url, ' * url:', url, 
       ' * currentHost: ', currentHost, ' * currentPath:', currentPath);
@@ -108,6 +113,10 @@ module.exports = {
         encoding: null
       }, function(error, response, body) {
         // log.dump('response.headers: ', response.headers);
+        if (error) {
+          log.dump('request error:', error);
+          return;
+        }
         var resEnc = charset(response.headers, body);
         // console.log(' charset: ', resEnc);
         if ('utf8' !== resEnc) {
@@ -120,6 +129,111 @@ module.exports = {
         }
 
         var rBody = cleanup(sBody);
+        // console.log('\n ======================= \n'+rBody+'\n ======================= \n');
+
+        res.end(rBody);
+
+    });
+
+
+
+  },
+  
+  parse: function (req, res) {
+
+    function getHost(location){
+      return location.split('\/').shift();
+    }
+
+    function getPath(location){
+      var pts = location.split('\/');
+      pts.shift();
+      return pts.join('\/');
+    }
+
+    function baseHost(location){
+      var host = getHost(location);
+      if (!host) return;
+
+      var m = String(host).match(/\b[a-z0-9-]+\.[a-z0-9-]+$/);
+      if (m && m.length) return m[0];
+    }
+    var defaultUrl = 'm.lenta.ru';
+    var uri = req.url.replace(/^\/parse\/?/,'')  || defaultUrl;
+    console.log(' === baseHost('+uri+'): ', baseHost(uri))
+    var currentHost = getHost(uri) || defaultUrl;
+    var currentPath = getPath(uri);
+
+    // console.log(' location: ',  location);
+
+    console.log(' PARSE * req.url', req.url, ' * uri:', uri, 
+      ' * currentHost: ', currentHost, ' * currentPath:', currentPath);
+
+    function iconv(body, fromEnc, toEnc) {
+      fromEnc = fromEnc || 'cp1251';
+      toEnc = toEnc || 'utf-8';
+      var tran = new Iconv(fromEnc,toEnc)
+
+      return tran.convert(body);
+    }
+
+    function cleanup(sBody) {
+      var rBody = sBody.replace(/[\s\t\r\n]+/mg,' ')
+        .replace(/>(\s+)</g,'><')
+        .replace(/((?:charset|encoding)\s?=\s?['"]? *)([\w\-]+)/i,'$1utf-8')        
+        .replace(/<!--.*?-->/g,'')
+        .replace(/<(link|xmeta)[^>]*?>/g,'')
+        .replace(/<(script|noscript|style|iframe)[^>]*?>.*?<\/\1>/g,'')
+        .replace(/(style|class|color|bgcolor)\s?=\s?["']?((?:.(?!["']?\s+(?:\S+)=|[>"']))+.)["']?/g, '')
+        .replace(/\s+>/g,'>');
+
+        return rBody;
+    }
+
+    function scrape(sBody) {
+      //Use jQuery just as in any regular HTML page
+      var $ = cheerio.load(sBody)
+        , $body = $('body')
+        , $aHref = $body.find('a[href]')
+        , items = [];
+
+      $aHref.each(function(i, item){
+        var $a = $(item)
+          , href = $a.attr('href')
+          , urlObj = url.parse(href, true);
+          console.log(' = A href:', href, ' U:',urlObj);
+      });
+
+      return sBody;
+
+
+    }
+
+
+    console.log(' * GET:', 'http://' + uri);
+
+    request({
+        uri: 'http://' + uri,
+        encoding: null
+      }, function(error, response, body) {
+        // log.dump('response.headers: ', response.headers);
+        if (error) {
+          log.dump('request error:', error);
+          return;
+        }
+        var resEnc = charset(response.headers, body);
+        // console.log(' charset: ', resEnc);
+        if ('utf8' !== resEnc) {
+          body = iconv(body, resEnc, 'utf-8');
+        }
+        var sBody = body.toString();
+        if (!body || !sBody) {
+          console.log('body is Empty:', body, '; typeof: ', typeof body);
+          res.end('failed.')
+        }
+
+        var rBody = cleanup(sBody);
+            rBody = scrape(rBody)
         // console.log('\n ======================= \n'+rBody+'\n ======================= \n');
 
         res.end(rBody);
