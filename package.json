@@ -5,7 +5,6 @@
   "description": "Surfy: clean web provider.",
   "dependencies": {
     "sails": "0.8.9",
-    "cheerio": "~0.16.0",
     "request": "~2.36.0",
     "iconv": "~2.1.4",
     "charset": "0.0.2",

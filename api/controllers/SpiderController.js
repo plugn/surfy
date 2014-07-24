@@ -2,8 +2,9 @@ var util = require('util'),
     request = require('request'),
     charset = require('charset'),
     url = require('url'),
-    Iconv = require('iconv').Iconv,
-    cheerio = require('cheerio');
+    Iconv = require('iconv').Iconv;
+    // cheerio = require('cheerio'),
+    // entities = require('entities');
 
 
 var log = {
@@ -24,29 +25,45 @@ var log = {
 
 
 
-var appURL = '/surfy/';
+function iconv(body, fromEnc, toEnc) {
+  fromEnc = fromEnc || 'cp1251';
+  toEnc = toEnc || 'utf-8';
+  var tran = new Iconv(fromEnc,toEnc)
+
+  return tran.convert(body);
+}
+
+function getHost(location){
+  return location.split('\/').shift();
+}
+
+function getPath(location){
+  var pts = location.split('\/');
+  pts.shift();
+  return pts.join('\/');
+}
+
+function baseHost(location){
+  var host = getHost(location);
+  if (!host) return;
+
+  var m = String(host).match(/\b[a-z0-9-]+\.[a-z0-9-]+$/);
+  if (m && m.length) return m[0];
+}
+
+
+
+function $A(args){ 
+  return Array.prototype.slice.call(args); 
+} 
+
 
 module.exports = {
 
   index: function (req, res) {
 
-    function getHost(location){
-      return location.split('\/').shift();
-    }
+    var appURL = '/surfy/';
 
-    function getPath(location){
-      var pts = location.split('\/');
-      pts.shift();
-      return pts.join('\/');
-    }
-
-    function baseHost(location){
-      var host = getHost(location);
-      if (!host) return;
-
-      var m = String(host).match(/\b[a-z0-9-]+\.[a-z0-9-]+$/);
-      if (m && m.length) return m[0];
-    }
     var defaultUrl = 'm.lenta.ru';
     var url = req.url.replace(/^\/surfy\/?/,'')  || defaultUrl;
     console.log(' === baseHost('+url+'): ', baseHost(url))
@@ -58,22 +75,17 @@ module.exports = {
     console.log(' * req.url', req.url, ' * url:', url, 
       ' * currentHost: ', currentHost, ' * currentPath:', currentPath);
 
-    function iconv(body, fromEnc, toEnc) {
-      fromEnc = fromEnc || 'cp1251';
-      toEnc = toEnc || 'utf-8';
-      var tran = new Iconv(fromEnc,toEnc)
 
-      return tran.convert(body);
-    }
 
     function cleanup(sBody) {
+      console.time('surfy:cleanup()');
       var rBody = sBody.replace(/[\s\t\r\n]+/mg,' ')
         .replace(/>(\s+)</g,'><')
-        .replace(/((?:charset|encoding)\s?=\s?['"]? *)([\w\-]+)/i,'$1utf-8')        
+        .replace(/((?:charset|encoding)\s?=\s?['"]? *)([\w\-]+)/i,'$1utf-8')
         .replace(/<!--.*?-->/g,'')
-        .replace(/<(link|xmeta)[^>]*?>/g,'')
-        .replace(/<(script|noscript|style|iframe)[^>]*?>.*?<\/\1>/g,'')
-        .replace(/(style|class|color|bgcolor)\s?=\s?["']?((?:.(?!["']?\s+(?:\S+)=|[>"']))+.)["']?/g, '')
+        .replace(/<(script|noscript|style|iframe|object|embed|param|input|button|option|select|textarea|form|fieldset)[^>]*?>.*?<\/\1>/g,'')
+        .replace(/<(link|input|button|option)[^>]*?>/g,'')
+        .replace(/(style|class|color|bgcolor|background)\s?=\s?["']?((?:.(?!["']?\s+(?:\S+)=|[>"']))+.)["']?/g, '')
         .replace(/\s+>/g,'>')
         .replace(/(<img[^]*?src\s?=\s?["']?)((?:https?:)?\/\/|)(\S+)(["']?(?:[^>]*?|)>)/g, 
           function(match,head,protocol,location,tail){
@@ -83,14 +95,23 @@ module.exports = {
               return (location && baseHost(currentHost) == baseHost(location))? match : ''
             }
 
-
             var ret = head + '//' + currentHost + 
               ('/'===location.charAt(0) ? location : '/' + currentPath + '/' + location) + tail;
 
-            console.log(' = ','M:'+match, 'P:'+protocol, 'L:'+location, ' * ret: ', ret);
+            // console.log(' = ','M:'+match, 'P:'+protocol, 'L:'+location, ' * ret: ', ret);
             return ret;
 
           })
+        .replace(/<(a)([^>]*?)>(.*?)<\/\1>/g, function() {
+            var a = $A(arguments)
+              , b = a[3] && a[3].replace(/<(?!img)[^>]*?>/g,'') || ''
+              , ret = '<' + a[1] + a[2] + '>' + b + '</' + a[1] + '>';
+            if (ret!==a[0]){
+              console.log(' \r =========== \n = A:', a[0], ' * ret: ', ret);
+            }
+
+            return ret;
+        })
         .replace(/(<a[^]*?href\s?=\s?["']+)((?:https?:)?\/\/|)(\S+)(["']+(?:[^>]*?|)>)/g, 
           function(match,head,protocol,location,tail){
             var ret = head + appURL + 
@@ -101,8 +122,9 @@ module.exports = {
             return ret;
           })
 
+      console.timeEnd('surfy:cleanup()');
 
-        return rBody;
+      return rBody;
     }
 
 
@@ -137,111 +159,5 @@ module.exports = {
 
 
 
-  },
-  
-  parse: function (req, res) {
-
-    function getHost(location){
-      return location.split('\/').shift();
-    }
-
-    function getPath(location){
-      var pts = location.split('\/');
-      pts.shift();
-      return pts.join('\/');
-    }
-
-    function baseHost(location){
-      var host = getHost(location);
-      if (!host) return;
-
-      var m = String(host).match(/\b[a-z0-9-]+\.[a-z0-9-]+$/);
-      if (m && m.length) return m[0];
-    }
-    var defaultUrl = 'm.lenta.ru';
-    var uri = req.url.replace(/^\/parse\/?/,'')  || defaultUrl;
-    console.log(' === baseHost('+uri+'): ', baseHost(uri))
-    var currentHost = getHost(uri) || defaultUrl;
-    var currentPath = getPath(uri);
-
-    // console.log(' location: ',  location);
-
-    console.log(' PARSE * req.url', req.url, ' * uri:', uri, 
-      ' * currentHost: ', currentHost, ' * currentPath:', currentPath);
-
-    function iconv(body, fromEnc, toEnc) {
-      fromEnc = fromEnc || 'cp1251';
-      toEnc = toEnc || 'utf-8';
-      var tran = new Iconv(fromEnc,toEnc)
-
-      return tran.convert(body);
-    }
-
-    function cleanup(sBody) {
-      var rBody = sBody.replace(/[\s\t\r\n]+/mg,' ')
-        .replace(/>(\s+)</g,'><')
-        .replace(/((?:charset|encoding)\s?=\s?['"]? *)([\w\-]+)/i,'$1utf-8')        
-        .replace(/<!--.*?-->/g,'')
-        .replace(/<(link|xmeta)[^>]*?>/g,'')
-        .replace(/<(script|noscript|style|iframe)[^>]*?>.*?<\/\1>/g,'')
-        .replace(/(style|class|color|bgcolor)\s?=\s?["']?((?:.(?!["']?\s+(?:\S+)=|[>"']))+.)["']?/g, '')
-        .replace(/\s+>/g,'>');
-
-        return rBody;
-    }
-
-    function scrape(sBody) {
-      //Use jQuery just as in any regular HTML page
-      var $ = cheerio.load(sBody)
-        , $body = $('body')
-        , $aHref = $body.find('a[href]')
-        , items = [];
-
-      $aHref.each(function(i, item){
-        var $a = $(item)
-          , href = $a.attr('href')
-          , urlObj = url.parse(href, true);
-          console.log(' = A href:', href, ' U:',urlObj);
-      });
-
-      return sBody;
-
-
-    }
-
-
-    console.log(' * GET:', 'http://' + uri);
-
-    request({
-        uri: 'http://' + uri,
-        encoding: null
-      }, function(error, response, body) {
-        // log.dump('response.headers: ', response.headers);
-        if (error) {
-          log.dump('request error:', error);
-          return;
-        }
-        var resEnc = charset(response.headers, body);
-        // console.log(' charset: ', resEnc);
-        if ('utf8' !== resEnc) {
-          body = iconv(body, resEnc, 'utf-8');
-        }
-        var sBody = body.toString();
-        if (!body || !sBody) {
-          console.log('body is Empty:', body, '; typeof: ', typeof body);
-          res.end('failed.')
-        }
-
-        var rBody = cleanup(sBody);
-            rBody = scrape(rBody)
-        // console.log('\n ======================= \n'+rBody+'\n ======================= \n');
-
-        res.end(rBody);
-
-    });
-
-
-
-  }
-  
+  }  
 };
