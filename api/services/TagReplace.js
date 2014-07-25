@@ -1,30 +1,41 @@
-function $R(s){
+/*
+tag with attrs parse
+/<\/?\w+((\s+\w+(\s*=\s*(?:".*?"|'.*?'|[^'">\s]+))?)+\s*|\s*)\/?>/g.exec('<a href=ee style=" > < ">dd</a> <b />')
+
+track a quote
+/(["']+)([^\1]+)(\1)/g.exec(' <   \'"ededewew    > \' "   >   ')
+*/
+
+function $TR(s){
   return new RegExp(s, 'g');
 }
 
-$R.list = function(t){
+$TR.list = function(t){
   if ('object' == typeof t && 'length' in t) return t.join('|');
   return String(t);
 }
 
-$R.anyTag = function(s){ 
-  return s.replace($R('<[^>]*?>'),'')
+$TR.anyTag = function(s){ 
+  return s.replace($TR('<[^>]*?>'),'')
 }
-$R.exceptOpenTag = function(s,tag){
-  return s.replace($R('<(?!'+tag+')[^>]*?>'),'')
+$TR.exceptOpenTag = function(s,tag){
+  return s.replace($TR('<(?!'+tag+')[^>]*?>'),'')
 }
-$R.exceptTailTag = function(s,tag){
-  return s.replace($R('<\/(?!'+tag+')[^>]*?>'),'')
+$TR.exceptTailTag = function(s,tag){
+  return s.replace($TR('<\/(?!'+tag+')[^>]*?>'),'')
 }
-$R.singleTags = function(s, tags){
-  return s.replace($R('<('+$R.list(tags)+')[^>]*?>'),'')
+$TR.exceptTag = function(s,tag){
+  return s.replace($TR('<\/(?!'+tag+')[^>]*?>|<(?!'+tag+')[^>]*?>'),'')
 }
-$R.pairedTags = function(s, tags){
-  return s.replace($R('<('+$R.list(tags)+'[^>]*?>.*?<\/\1>'),'')
+$TR.singleTags = function(s, tags){
+  return s.replace($TR('<('+$TR.list(tags)+')[^>]*?>'),'')
 }
-$R.attrs = function(s, attrs){
-  return s.replace($R('('+$R.list(attrs)+')\s?=\s?["\']?((?:.(?!["\']?\s+(?:\S+)=|[>"\']))+.)["\']?'), '')
+$TR.pairedTags = function(s, tags){
+  return s.replace($TR('<('+$TR.list(tags)+'[^>]*?>.*?<\/\1>'),'')
+}
+$TR.attrs = function(s, attrs){
+  return s.replace($TR('('+$TR.list(attrs)+')\s?=\s?["\']?((?:.(?!["\']?\s+(?:\S+)=|[>"\']))+.)["\']?'), '')
 }
 
 
-module.exports = $R;
+module.exports = $TR;

@@ -75,8 +75,6 @@ module.exports = {
     console.log(' * req.url', req.url, ' * url:', url, 
       ' * currentHost: ', currentHost, ' * currentPath:', currentPath);
 
-
-
     function cleanup(sBody) {
       console.time('surfy:cleanup()');
       var rBody = sBody.replace(/[\s\t\r\n]+/mg,' ')
@@ -84,34 +82,47 @@ module.exports = {
         .replace(/((?:charset|encoding)\s?=\s?['"]? *)([\w\-]+)/i,'$1utf-8')
         .replace(/<!--.*?-->/g,'')
         .replace(/<(script|noscript|style|iframe|object|embed|param|input|button|option|select|textarea|form|fieldset)[^>]*?>.*?<\/\1>/g,'')
-        .replace(/<(link|input|button|option)[^>]*?>/g,'')
+        .replace(/<(link|input|button|option)[^>]*?>/g,'')        
+
+        // custom attributes
+        .replace(/((?:x|data|ng)-[\w-]+)\s?=\s?(["']+)([^\2]*?)(\2)/g, '')
+            // function(m0, m1, m2, m3, m4, m5){
+            //   var ret;
+            //   if (['src','href','alt','title','charset','name','content','value','id'].indexOf(m1) == -1)
+            //     ret = ''
+            //   else 
+            //     ret = m0;
+
+            //   // console.log(' =m= ', m0, ' => ', ret, '\n - ', m4, m5);
+            //   return ret;
+            // })
+
+        .replace(/(style|class|color|bgcolor|background)\s?=\s?(["']+)([^\2]*?)(\2)/g, '')
         .replace(/(style|class|color|bgcolor|background)\s?=\s?["']?((?:.(?!["']?\s+(?:\S+)=|[>"']))+.)["']?/g, '')
+
+        // whitespace collapsing
         .replace(/\s+>/g,'>')
         .replace(/(<img[^]*?src\s?=\s?["']?)((?:https?:)?\/\/|)(\S+)(["']?(?:[^>]*?|)>)/g, 
           function(match,head,protocol,location,tail){
             if (!location) return '';
-
             if (protocol){
               return (location && baseHost(currentHost) == baseHost(location))? match : ''
             }
-
             var ret = head + '//' + currentHost + 
               ('/'===location.charAt(0) ? location : '/' + currentPath + '/' + location) + tail;
-
             // console.log(' = ','M:'+match, 'P:'+protocol, 'L:'+location, ' * ret: ', ret);
             return ret;
-
           })
-        .replace(/<(a)([^>]*?)>(.*?)<\/\1>/g, function() {
-            var a = $A(arguments)
-              , b = a[3] && a[3].replace(/<(?!img)[^>]*?>/g,'') || ''
-              , ret = '<' + a[1] + a[2] + '>' + b + '</' + a[1] + '>';
-            if (ret!==a[0]){
-              console.log(' \r =========== \n = A:', a[0], ' * ret: ', ret);
-            }
 
-            return ret;
-        })
+        // allow only IMG inside A
+        // .replace(/<(a)([^>]*?)>(.*?)<\/\1>/g, function() {
+        //     var a = $A(arguments)
+        //       , b = a[3] && a[3].replace(/<(?!span|img|p)[^>]*?>/g,'') || ''
+        //       , ret = '<' + a[1] + a[2] + '>' + b + '</' + a[1] + '>';
+        //     // if (ret!==a[0]){console.log(' \r =========== \n = A:', a[0], ' * ret: ', ret);}
+        //     return ret;
+        // })
+
         .replace(/(<a[^]*?href\s?=\s?["']+)((?:https?:)?\/\/|)(\S+)(["']+(?:[^>]*?|)>)/g, 
           function(match,head,protocol,location,tail){
             var ret = head + appURL + 
