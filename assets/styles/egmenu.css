@@ -1,0 +1,40 @@
+
+
+ul.egmenu {  
+    background: #333; 
+    height: 30px;
+    width: 100%; 
+}
+
+ul.egmenu > li { 
+    float: left; 
+    position: relative;  
+}
+
+ul.egmenu ul {
+    background: #444; 
+    display: none; 
+    position: absolute;
+    left: 0; top: 100%;
+}
+
+ul.egmenu a { 
+    cursor: pointer; 
+    display: block; 
+    color: white; 
+    line-height: 30px; 
+    padding: 0 10px; 
+}
+
+ul.egmenu li { list-style: none; }
+
+ul.egmenu li:hover { background: #555;  }
+ul.egmenu li:hover ul { display: block;  }
+
+
+@media all and (max-width: 480px) {
+    ul.egmenu {  height: auto; }
+    ul.egmenu > li {  float: none; width: 100%; }
+    ul.egmenu a { line-height: 40px; }
+    ul.egmenu ul { position: relative; }
+}

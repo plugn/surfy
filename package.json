@@ -8,7 +8,8 @@
     "request": "~2.36.0",
     "iconv": "~2.1.4",
     "charset": "0.0.2",
-    "url": "~0.10.1"
+    "url": "~0.10.1",
+    "cheerio": "~0.17.0"
   },
   "scripts": {
     "start": "node app.js",

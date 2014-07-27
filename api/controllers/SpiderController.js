@@ -2,8 +2,8 @@ var util = require('util'),
     request = require('request'),
     charset = require('charset'),
     url = require('url'),
+    cheerio = require('cheerio'),
     Iconv = require('iconv').Iconv;
-    // cheerio = require('cheerio'),
     // entities = require('entities');
 
 
@@ -58,6 +58,32 @@ function $A(args){
 } 
 
 
+function getDOM(html){
+  return cheerio.load(html, {
+      normalizeWhitespace: false,
+      xmlMode: false,
+      decodeEntities: false 
+  });
+}
+
+function transform(html) {
+  var $ = getDOM(html);
+  var styles = $('style').remove()
+  var scripts = $('script').remove()
+  return $.html();
+}  
+
+function stylize(html) {  
+
+  var $ = getDOM(html);
+
+  // $('ul li a').parents('ul').addClass('egmenu');
+  $('head').append('<meta charset="utf-8">');
+  $('head').append('<link href="/assets/styles/surfy.css" rel="stylesheet" type="text/css">');
+  return $.html();
+}
+
+
 module.exports = {
 
   index: function (req, res) {
@@ -77,15 +103,17 @@ module.exports = {
 
     function cleanup(sBody) {
       console.time('surfy:cleanup()');
-      var rBody = sBody.replace(/[\s\t\r\n]+/mg,' ')
-        .replace(/>(\s+)</g,'><')
+      var rBody = sBody.replace(/\r?\n|\r\n?/mg, ' ')
+        .replace(/\s|\t/g,' ')
+        .replace(/>\s+</g,'><')
         .replace(/((?:charset|encoding)\s?=\s?['"]? *)([\w\-]+)/i,'$1utf-8')
         .replace(/<!--.*?-->/g,'')
-        .replace(/<(script|noscript|style|iframe|object|embed|param|input|button|option|select|textarea|form|fieldset)[^>]*?>.*?<\/\1>/g,'')
-        .replace(/<(link|input|button|option)[^>]*?>/g,'')        
+        .replace(/<(script|style|noscript|iframe|object|embed|param|input|button|option|select|textarea|form|fieldset)((?:\s+\w+(?:\s*=\s*(?:(?:"[^"]*")|(?:'[^']*')|[^>\s]+))?)*)\s*(\/?)>.*?<\/\1[^>]*>/mgi,'')
+        // .replace(/<(script|style|noscript|iframe|object|embed|param|input|button|option|select|textarea|form|fieldset)[^>]*?>.*?<\/\1>/gi,'')
+        .replace(/<(meta|link|input|button|option)[^>]*?>/gi,'')        
 
         // custom attributes
-        .replace(/((?:x|data|ng)-[\w-]+)\s?=\s?(["']+)([^\2]*?)(\2)/g, '')
+        .replace(/((?:x|data|ng)-[\w-]+)\s?=\s?(["']+)([^\2]*?)(\2)/gi, '')
             // function(m0, m1, m2, m3, m4, m5){
             //   var ret;
             //   if (['src','href','alt','title','charset','name','content','value','id'].indexOf(m1) == -1)
@@ -97,8 +125,8 @@ module.exports = {
             //   return ret;
             // })
 
-        .replace(/(style|class|color|bgcolor|background)\s?=\s?(["']+)([^\2]*?)(\2)/g, '')
-        .replace(/(style|class|color|bgcolor|background)\s?=\s?["']?((?:.(?!["']?\s+(?:\S+)=|[>"']))+.)["']?/g, '')
+        .replace(/(style|class|color|bgcolor|background)\s?=\s?(["']+)([^\2]*?)(\2)/gi, '')
+        .replace(/(style|class|color|bgcolor|background)\s?=\s?["']?((?:.(?!["']?\s+(?:\S+)=|[>"']))+.)["']?/gi, '')
 
         // whitespace collapsing
         .replace(/\s+>/g,'>')
@@ -161,9 +189,10 @@ module.exports = {
           res.end('failed.')
         }
 
-        var rBody = cleanup(sBody);
+        var tBody = transform(sBody)
+        var rBody = cleanup(tBody);
         // console.log('\n ======================= \n'+rBody+'\n ======================= \n');
-
+        rBody = stylize(rBody);
         res.end(rBody);
 
     });
